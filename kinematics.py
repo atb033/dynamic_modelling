@@ -1,4 +1,4 @@
-from sympy import symbols, Matrix, eye, cos, sin, simplify, pi, zeros
+from sympy import symbols, Matrix, eye, cos, sin, simplify, pi, zeros, diff
 
 
 class SerialRobotKinematics:
@@ -23,7 +23,11 @@ class SerialRobotKinematics:
         self.angular_vel_propagation()
 
         self.vs = []
+        self.v_tool = None # Velocity of the tool wrt ground
+
         self.linear_vel_propagation()
+
+        self.compute_jacobian()
 
     def compute_transformation_matrices(self):
         """
@@ -42,7 +46,6 @@ class SerialRobotKinematics:
     def compute_origins(self):
         for T in self.transformation_matrices:
             self.origins.append(T[:3, 3])
-        print(self.origins)
 
     def angular_vel_propagation(self):
         z_vec = Matrix([0, 0, 1])
@@ -55,15 +58,34 @@ class SerialRobotKinematics:
         self.omegas.append(omega3)
 
     def linear_vel_propagation(self):
+        # Velocity at the joints
         v1 = zeros(3,1)
         v2 = simplify(self.rotation_matrices[1].transpose() * (v1  + self.omegas[0].cross(self.origins[1])))
         v3 = simplify(self.rotation_matrices[2].transpose() * (v2  + self.omegas[1].cross(self.origins[2])))
-        print("**********************")
-        print(v3)
+
+        # velocity of the tool
+        v4 = simplify((v3  + self.omegas[2].cross(self.origins[3])))
         
         self.vs.append(v1)
         self.vs.append(v2)
         self.vs.append(v3)
+        self.vs.append(v4)
+
+        # Velocity of the tool wrt ground
+        self.v_tool = simplify(self.T0end[:3,:3] * v4)
+
+    def compute_jacobian(self):
+        """This function computes the Jacobian of the tool wrt to the ground"""
+
+        col1 = diff(self.v_tool,self.theta1dot)
+        col2 = diff(self.v_tool,self.theta2dot)
+        col3 = diff(self.v_tool,self.theta3dot)
+
+        self.jacobian = col1
+        self.jacobian = self.jacobian.col_insert(1,col2)
+        self.jacobian = self.jacobian.col_insert(2,col3)
+
+        # print(self.jacobian)
 
     def get_trans_matrix(self, dh_parameters):
         """
