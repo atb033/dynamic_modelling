@@ -57,6 +57,8 @@ class SerialRobotKinematics:
         self.omegas.append(omega2)
         self.omegas.append(omega3)
 
+        self.omega_tool = simplify( self.T0end[:3,:3] *  omega3)
+
     def linear_vel_propagation(self):
         # Velocity at the joints
         v1 = zeros(3,1)
@@ -77,15 +79,17 @@ class SerialRobotKinematics:
     def compute_jacobian(self):
         """This function computes the Jacobian of the tool wrt to the ground"""
 
-        col1 = diff(self.v_tool,self.theta1dot)
-        col2 = diff(self.v_tool,self.theta2dot)
-        col3 = diff(self.v_tool,self.theta3dot)
+        twist = Matrix([self.v_tool, self.omega_tool])
+
+        col1 = diff(twist,self.theta1dot)
+        col2 = diff(twist,self.theta2dot)
+        col3 = diff(twist,self.theta3dot)
 
         self.jacobian = col1
         self.jacobian = self.jacobian.col_insert(1,col2)
         self.jacobian = self.jacobian.col_insert(2,col3)
 
-        # print(self.jacobian)
+        print(self.jacobian)
 
     def get_trans_matrix(self, dh_parameters):
         """
