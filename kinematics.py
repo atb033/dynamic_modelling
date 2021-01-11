@@ -27,13 +27,13 @@ class SerialRobotKinematics:
 
         self.linear_vel_propagation()
 
-        self.compute_jacobian()
+        # self.compute_jacobian()
 
     def compute_transformation_matrices(self):
         """
         This function computes a whole bunch of matrices from the DH-table
         """
-        for dh_parameters in dh_table:
+        for dh_parameters in self.dh_table:
             T = self.get_trans_matrix(dh_parameters)
             self.transformation_matrices.append(T)
             self.T0end *= T
